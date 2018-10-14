@@ -1,0 +1,14 @@
+#
+# Elassandra enterprise 
+#
+transport.bind_host: 0.0.0.0
+
+ssl.transport.enabled: true
+https.enabled: true
+
+aaa.enabled: true
+aaa.shared_secret: MMFKJs5snctxPzmJ36poizoVnmMqmt
+aaa.audit.enabled: true
+aaa.audit.appender: log
+#aaa.audit.exclude_login: kibana
+cbs.enabled: true

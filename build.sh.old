@@ -1,0 +1,90 @@
+#!/bin/bash
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+set -ex
+
+cd $(dirname "$0")
+
+# If set, the images will be published to docker hub
+DOCKER_PUBLISH=${DOCKER_PUBLISH:-true}
+
+# Unless specified with a trailing slash, publish in the public strapdata docker hub
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-""}
+
+# If set, the images will be tagged latest
+LATEST=${LATEST:-false}
+
+# Target elassandra enterprise repo
+REPO=${REPO:="strapdata/elassandra-enterprise"}
+
+# The latest strapack version for each major release
+LATEST_STRAPACK_VERSION_5=5.5.0.12
+LATEST_STRAPACK_VERSION_6=6.2.3.4
+
+# Options to add to docker build command
+DOCKER_BUILD_OPTS=${DOCKER_BUILD_OPTS:-"--rm"}
+
+# the target names of the images
+DOCKER_IMAGE=${DOCKER_REGISTRY}${REPO}
+
+main() {
+  if [[ $# != 2 ]]; then
+     echo "Expecting <elassandra_repo> <elassandra_version>"
+     exit 1
+  fi
+<<<<<<< HEAD
+=======
+
+>>>>>>> 2ca31431a0fd4afeee31f642eb1313c0fe1c7fbe
+  
+  elassandra_repo="${1}"
+  elassandra_version="${2}"
+
+  case "$elassandra_version" in
+  5*) strapack_version=$LATEST_STRAPACK_VERSION_5;;
+  6*) strapack_version=$LATEST_STRAPACK_VERSION_6;;
+  *) echo "Strapack version undefined"
+     exit 1;;
+  esac
+<<<<<<< HEAD
+=======
+  strapack_url="http://packages.strapdata.com/strapdata-enterprise-${strapack_version}.zip"
+>>>>>>> 2ca31431a0fd4afeee31f642eb1313c0fe1c7fbe
+
+  echo "Building docker image for elassandra=$elassandra_repo/$elassandra_version strapack_version=$strapack_version"
+  docker build --build-arg elassandra_repo=$elassandra_repo \
+	       --build-arg elassandra_version=$elassandra_version \
+<<<<<<< HEAD
+=======
+               --build-arg strapack_url=$strapack_url \
+>>>>>>> 2ca31431a0fd4afeee31f642eb1313c0fe1c7fbe
+               --build-arg strapack_version=$strapack_version \
+               $DOCKER_BUILD_OPTS -f Dockerfile -t "$DOCKER_IMAGE:$elassandra_version" .
+
+  # push to docker hub if DOCKER_PUBLISH variable is true (replace remote_repository if you want to use this feature)
+  if [ "$DOCKER_PUBLISH" = "true" ]; then
+    docker push $DOCKER_IMAGE:$elassandra_version
+
+    if [ "$LATEST" = "true" ] || [ "$TRAVIS_BRANCH" = "master" ]; then
+      echo "Publishing the lastest = $elassandra_version"
+      docker tag $DOCKER_IMAGE:$elassandra_version $DOCKER_IMAGE:latest
+      docker push $DOCKER_IMAGE:latest
+    fi
+  fi
+}
+
+main $@

@@ -1,0 +1,16 @@
+influxdb:
+-
+  dbName: 'elassandra'
+  protocol: 'http'
+  tags:
+    environment: 'test'
+    cluster: 'elassandra'
+    host: 'localhost'
+  hosts:
+    - host: 'influxdb'
+      port: 8086
+  auth: 'elassandra:elassandra'
+  timeunit: 'SECONDS'
+  period: 60
+  prefix: ''
+  groupGauges: true
