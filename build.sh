@@ -17,19 +17,24 @@
 #
 set -ex
 
+#---- input params ----
+# the base image to inherit from
+BASE_IMAGE=${BASE_IMAGE:-elassandra:latest}
 
-# The script need the elassandra git repository where the deb package has been built
-REPO_DIR=${REPO_DIR}
-PACKAGE_LOCATION=${PACKAGE_LOCATION}
-RELEASE_NAME=${RELEASE_NAME}
-if [ -z "$REPO_DIR" ] && [ -z "$PACKAGE_LOCATION" ] && [ -z "$RELEASE_NAME" ]; then
-  echo "REPO_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
-  echo "or PACKAGE_LOCATION must point to an url or path containing a elassandra debian package"
-  echo "or RELEASE_NAME must be a valid release name on the github repository"
+# The script need the strapack git repository where the zip package has been built
+STRAPACK_DIR=${STRAPACK_DIR}
+STRAPACK_URL=${STRAPACK_URL}
+if [ -z "$STRAPACK_DIR" ] && [ -z "$STRAPACK_URL" ]; then
+  echo "STRAPACK_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
+  echo "or STRAPACK_URL must point to an url or path containing a elassandra debian package."
   exit 1
 fi
 
+# optionally, the sha1 of the commit, if applicable
+# this will be used to tag the image
+STRAPACK_COMMIT=${STRAPACK_COMMIT:-""}
 
+#---- output params ----
 # If set, the images will be published to docker hub
 DOCKER_PUBLISH=${DOCKER_PUBLISH:-false}
 
@@ -42,21 +47,12 @@ DOCKER_LATEST=${DOCKER_LATEST:-false}
 # set the docker hub repository name
 REPO_NAME=${REPO_NAME:-"strapdata/elassandra-enterprise"}
 
-# the github repository from which to pull the strapack release
-GITHUB_REPO_NAME=${GITHUB_REPO_NAME:-$REPO_NAME}
+# the target names of the images
+DOCKER_IMAGE=${DOCKER_REGISTRY}${REPO_NAME}
 
 # Options to add to docker build command
 DOCKER_BUILD_OPTS=${DOCKER_BUILD_OPTS:-"--rm"}
 
-# the base image to inherit from
-BASE_IMAGE=${BASE_IMAGE:-elassandra:latest}
-
-# the target names of the images
-DOCKER_IMAGE=${DOCKER_REGISTRY}${REPO_NAME}
-
-# optionally, the sha1 of the commit, if applicable
-# this will be used to tag the image
-ELASSANDRA_COMMIT=${ELASSANDRA_COMMIT:-""}
 
 wget_package() {
   local url=$1
@@ -67,30 +63,14 @@ wget_package() {
   PACKAGE_SRC=tmp-cache/$(basename $url)
 }
 
-get_release() {
-  local name=$1
-  local base_url
 
-  local url=https://github.com/$REPO_NAME/releases/download/v${name}/elassandra-${name}.deb
-
-  wget_package $url
-}
-
-if [ -n "$REPO_DIR" ]; then
+if [ -n "$STRAPACK_DIR" ]; then
   # get the first elassandra deb in the distributions folder of the git repository
-  PACKAGE_SRC=$(ls ${REPO_DIR}/distribution/deb/build/distributions/elassandra-*.deb | head -n1 | cut -d " " -f1)
+  PACKAGE_SRC=$(ls ${STRAPACK_DIR}/distribution/target/releases/strapdata-enterprise-*.zip | head -n1 | cut -d " " -f1)
 
-elif [ -n "$PACKAGE_LOCATION" ] && [[ $PACKAGE_LOCATION = http* ]]; then
+elif [ -n "$STRAPACK_URL" ] && [[ $STRAPACK_URL = http* ]]; then
   # download the file from the web
-  wget_package $PACKAGE_LOCATION
-
-elif [ -n "$PACKAGE_LOCATION" ]; then
-  # simply get the file from the local disk
-  PACKAGE_SRC="$PACKAGE_LOCATION"
-
-elif [ -n "$RELEASE_NAME" ]; then
-  # get the file from github release
-  get_release "$RELEASE_NAME"
+  wget_package $STRAPACK_URL
 
 else
   echo "error: unreachable... you may report the issue"
@@ -98,24 +78,22 @@ else
 fi
 
 # extract the elassandra version name
-ELASSANDRA_VERSION=$(echo ${PACKAGE_SRC} | sed 's/.*elassandra\-\(.*\).deb/\1/')
+STRAPACK_VERSION=$(echo ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip/\1/')
+ELASSANDRA_TAG=$(echo ${BASE_IMAGE} | sed 's/.*:\(.*\)/\1/')
 
 # setup the tmp-build directory
 mkdir -p tmp-build
 cp ${PACKAGE_SRC} tmp-build/
-ELASSANDRA_PACKAGE=tmp-build/elassandra-${ELASSANDRA_VERSION}.deb
 
 # build the image
-echo "Building docker image for ELASSANDRA_PACKAGE=$ELASSANDRA_PACKAGE"
-docker build --build-arg ELASSANDRA_VERSION=${ELASSANDRA_VERSION} \
-             --build-arg ELASSANDRA_PACKAGE=${ELASSANDRA_PACKAGE} \
+echo "Building elassandra-enterprise docker image for $BASE_IMAGE with strapack $STRAPACK_VERSION"
+docker build --build-arg STRAPACK_VERSION=${STRAPACK_VERSION} \
              --build-arg BASE_IMAGE=${BASE_IMAGE} \
-             --build-arg ELASSANDRA_COMMIT=${ELASSANDRA_COMMIT} \
-             ${DOCKER_BUILD_OPTS} -f Dockerfile -t "$DOCKER_IMAGE:$ELASSANDRA_VERSION" .
+             ${STRAPACK_COMMIT:+"--build-arg STRAPACK_COMMIT=${STRAPACK_COMMIT}"} \
+             ${DOCKER_BUILD_OPTS} -f Dockerfile -t "$DOCKER_IMAGE:$ELASSANDRA_TAG" .
 
 # cleanup
 rm -rf tmp-build
-
 
 publish() {
   if [ "$DOCKER_PUBLISH" = true ]; then
@@ -125,14 +103,14 @@ publish() {
 }
 
 # tag and publish image if DOCKER_PUBLISH=true
-publish ${DOCKER_IMAGE}:${ELASSANDRA_VERSION}
+publish ${DOCKER_IMAGE}:${ELASSANDRA_TAG}
 
 if [ "$DOCKER_LATEST" = "true" ]; then
-  docker tag ${DOCKER_IMAGE}:${ELASSANDRA_VERSION} ${DOCKER_IMAGE}:latest
+  docker tag ${DOCKER_IMAGE}:${ELASSANDRA_TAG} ${DOCKER_IMAGE}:latest
   publish ${DOCKER_IMAGE}:latest
 fi
 
 if [ ! -z "$ELASSANDRA_COMMIT" ]; then
-  docker tag ${DOCKER_IMAGE}:${ELASSANDRA_VERSION} ${DOCKER_IMAGE}:${ELASSANDRA_COMMIT}
+  docker tag ${DOCKER_IMAGE}:${ELASSANDRA_TAG} ${DOCKER_IMAGE}:${ELASSANDRA_COMMIT}
   publish ${DOCKER_IMAGE}:${ELASSANDRA_COMMIT}
 fi

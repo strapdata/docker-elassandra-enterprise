@@ -5,9 +5,8 @@
 #set -x
 timeout=${READINESS_PROBE_TIMEOUT:-30}
 
-# curl -LI http://www.example.org -o /dev/null -w '%{http_code}\n' -s
-if [[ $(nodetool status | grep $POD_IP) == *"UN"* ]]; then
-  if [[ "${CASSANDRA_DAEMON:-"org.apache.cassandra.service.CassandraDaemon"} == "org.apache.cassandra.service.CassandraDaemon" ]]; then
+if [[ $(nodetool status | grep ${POD_IP:=localhost}) == *"UN"* ]]; then
+  if [[ "${CASSANDRA_DAEMON:-org.apache.cassandra.service.CassandraDaemon}" == "org.apache.cassandra.service.CassandraDaemon" ]]; then
      exit 0;
   else 
      rc = $(curl -sLI -w '%{http_code}\n' -o /dev/null --max-time $timeout "${PROTOCOL:-http}://localhost:9200/")
