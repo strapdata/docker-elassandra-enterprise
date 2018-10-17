@@ -1,22 +1,22 @@
 #!/bin/bash
 #
 # Check for elassandra availability.
-# Override .curlrc for SSL client auth
+#
+# MONITOR_SSL_CLIENT_CERT could be your client-auth certificate and keystore (filename of a mounted k8s secret)
+# MONITOR_SSL_CLIENT_CERT_TYPE should be your client-auth certificate file type, p12 by default
 #set -x
-timeout=${READINESS_PROBE_TIMEOUT:-30}
 
-if [[ $(nodetool status | grep ${POD_IP:=localhost}) == *"UN"* ]]; then
+if [[ $(nodetool status | grep ${POD_IP:-localhost}) == *"UN"* ]]; then
   if [[ "${CASSANDRA_DAEMON:-org.apache.cassandra.service.CassandraDaemon}" == "org.apache.cassandra.service.CassandraDaemon" ]]; then
      exit 0;
   else 
-     rc = $(curl -sLI -w '%{http_code}\n' -o /dev/null --max-time $timeout "${PROTOCOL:-http}://localhost:9200/")
+     rc=$(curl -sLI -k -w '%{http_code}\n' ${MONITOR_SSL_CLIENT_CERT:+"--cert"} ${MONITOR_SSL_CLIENT_CERT} ${MONITOR_SSL_CLIENT_CERT:+"--cert-type"} ${MONITOR_SSL_CLIENT_CERT:+"${MONITOR_SSL_CLIENT_CERT_TYPE:-p12}"} -o /dev/null --max-time ${READINESS_PROBE_TIMEOUT:-30} "${PROTOCOL:-http}://${POD_IP:-localhost}:9200/")
      if [[ $DEBUG ]]; then
         echo "Elasticsearch rc="+rc;
      fi
      case "$rc" in
-     "200")
-     "401")
-	exit 0;;
+     "200") exit 0;;
+     "401") exit 0;;
      esac
      if [[ $DEBUG ]]; then
         echo "Elasticsearch not UP";

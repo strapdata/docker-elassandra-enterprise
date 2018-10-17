@@ -4,7 +4,7 @@ Build elassandra-enterprise docker image
 
 ## build
 
-	STRAPACK_DIR=/Users/vroyer/dev/git/strapdata/strapack BASE_IMAGE=strapdata/elassandra-rc:6.2.3.7-rc1 DOCKER_PUBLISH=true ./build.sh 
+	ENTERPRISE_PLUGIN_DIR=/Users/vroyer/dev/git/strapdata/strapack BASE_IMAGE=strapdata/elassandra-rc:6.2.3.7-rc1 DOCKER_PUBLISH=true ./build.sh 
 
 
 ## Visit elassandra image 

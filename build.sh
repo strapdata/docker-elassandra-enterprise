@@ -22,17 +22,17 @@ set -ex
 BASE_IMAGE=${BASE_IMAGE:-elassandra:latest}
 
 # The script need the strapack git repository where the zip package has been built
-STRAPACK_DIR=${STRAPACK_DIR}
-STRAPACK_URL=${STRAPACK_URL}
-if [ -z "$STRAPACK_DIR" ] && [ -z "$STRAPACK_URL" ]; then
-  echo "STRAPACK_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
-  echo "or STRAPACK_URL must point to an url or path containing a elassandra debian package."
+ENTERPRISE_PLUGIN_DIR=${ENTERPRISE_PLUGIN_DIR}
+ENTERPRISE_PLUGIN_URL=${ENTERPRISE_PLUGIN_URL}
+if [ -z "$ENTERPRISE_PLUGIN_DIR" ] && [ -z "$ENTERPRISE_PLUGIN_URL" ]; then
+  echo "ENTERPRISE_PLUGIN_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
+  echo "or ENTERPRISE_PLUGIN_URL must point to an url or path containing a elassandra debian package."
   exit 1
 fi
 
 # optionally, the sha1 of the commit, if applicable
 # this will be used to tag the image
-STRAPACK_COMMIT=${STRAPACK_COMMIT:-""}
+ENTERPRISE_PLUGIN_COMMIT=${ENTERPRISE_PLUGIN_COMMIT:-""}
 
 #---- output params ----
 # If set, the images will be published to docker hub
@@ -64,13 +64,13 @@ wget_package() {
 }
 
 
-if [ -n "$STRAPACK_DIR" ]; then
+if [ -n "$ENTERPRISE_PLUGIN_DIR" ]; then
   # get the first elassandra deb in the distributions folder of the git repository
-  PACKAGE_SRC=$(ls ${STRAPACK_DIR}/distribution/target/releases/strapdata-enterprise-*.zip | head -n1 | cut -d " " -f1)
+  PACKAGE_SRC=$(ls ${ENTERPRISE_PLUGIN_DIR}/distribution/target/releases/strapdata-enterprise-*.zip | head -n1 | cut -d " " -f1)
 
-elif [ -n "$STRAPACK_URL" ] && [[ $STRAPACK_URL = http* ]]; then
+elif [ -n "$ENTERPRISE_PLUGIN_URL" ] && [[ $ENTERPRISE_PLUGIN_URL = http* ]]; then
   # download the file from the web
-  wget_package $STRAPACK_URL
+  wget_package $ENTERPRISE_PLUGIN_URL
 
 else
   echo "error: unreachable... you may report the issue"
@@ -78,7 +78,7 @@ else
 fi
 
 # extract the elassandra version name
-STRAPACK_VERSION=$(echo ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip/\1/')
+ENTERPRISE_PLUGIN_VERSION=$(echo ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip/\1/')
 ELASSANDRA_TAG=$(echo ${BASE_IMAGE} | sed 's/.*:\(.*\)/\1/')
 
 # setup the tmp-build directory
@@ -86,10 +86,10 @@ mkdir -p tmp-build
 cp ${PACKAGE_SRC} tmp-build/
 
 # build the image
-echo "Building elassandra-enterprise docker image for $BASE_IMAGE with strapack $STRAPACK_VERSION"
-docker build --build-arg STRAPACK_VERSION=${STRAPACK_VERSION} \
+echo "Building elassandra-enterprise docker image for $BASE_IMAGE with strapack $ENTERPRISE_PLUGIN_VERSION"
+docker build --build-arg ENTERPRISE_PLUGIN_VERSION=${ENTERPRISE_PLUGIN_VERSION} \
              --build-arg BASE_IMAGE=${BASE_IMAGE} \
-             ${STRAPACK_COMMIT:+"--build-arg STRAPACK_COMMIT=${STRAPACK_COMMIT}"} \
+             ${ENTERPRISE_PLUGIN_COMMIT:+"--build-arg ENTERPRISE_PLUGIN_COMMIT=${ENTERPRISE_PLUGIN_COMMIT}"} \
              ${DOCKER_BUILD_OPTS} -f Dockerfile -t "$DOCKER_IMAGE:$ELASSANDRA_TAG" .
 
 # cleanup
