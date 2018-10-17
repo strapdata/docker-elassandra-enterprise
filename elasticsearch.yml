@@ -1,14 +1,22 @@
 #
-# Elassandra enterprise 
+# Elasticsearch config file for Elassandra Enterprise.
 #
 transport.bind_host: 0.0.0.0
 
+# SSL network encryption
 ssl.transport.enabled: true
 https.enabled: true
 
+# Anable Elasticsearch authenication based on a Cassandra role.
 aaa.enabled: true
+
+# Datacenter wide shared secret
 aaa.shared_secret: MMFKJs5snctxPzmJ36poizoVnmMqmt
+
+# Enable elasticsearch authentication audit
 aaa.audit.enabled: true
-aaa.audit.appender: log
+aaa.audit.appender: log 
 #aaa.audit.exclude_login: kibana
+
+# Enable Content-Based Security (Add a query and/or field filter based on user's profile)
 cbs.enabled: true

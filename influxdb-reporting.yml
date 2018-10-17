@@ -1,3 +1,8 @@
+# 
+# InfluxDB JMX reporter
+# See https://github.com/iZettle/dropwizard-metrics-influxdb
+# See https://github.com/iZettle/dropwizard-metrics-influxdb/pull/77
+#
 influxdb:
 -
   dbName: 'elassandra'
