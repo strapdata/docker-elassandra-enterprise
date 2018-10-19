@@ -19,20 +19,52 @@ set -ex
 
 #---- input params ----
 # the base image to inherit from
-BASE_IMAGE=${BASE_IMAGE:-elassandra:latest}
+BASE_IMAGE=${BASE_IMAGE:-strapdata/elassandra:latest}
 
-# The script need the strapack git repository where the zip package has been built
-ENTERPRISE_PLUGIN_DIR=${ENTERPRISE_PLUGIN_DIR}
-ENTERPRISE_PLUGIN_URL=${ENTERPRISE_PLUGIN_URL}
-if [ -z "$ENTERPRISE_PLUGIN_DIR" ] && [ -z "$ENTERPRISE_PLUGIN_URL" ]; then
-  echo "ENTERPRISE_PLUGIN_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
-  echo "or ENTERPRISE_PLUGIN_URL must point to an url or path containing a elassandra debian package."
+# if true, remove the image to re-download it.
+FORCE_PULL=${FORCE_PULL:-false}
+
+# pull the image if not present, or if FORCE_PULL=true
+if [ "$FORCE_PULL" = true ] || ! docker inspect --type=image $BASE_IMAGE > /dev/null; then
+  docker rmi ${BASE_IMAGE} || true
+  docker pull ${BASE_IMAGE}
+fi
+
+get_image_env() {
+  local name=$1
+  local image=${2:-${BASE_IMAGE}}
+  local val=$(docker inspect -f  \
+    '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' \
+    $image | grep $name)
+  echo ${val#"$name="}
+}
+
+# the elassandra version.
+# if not set, it is inferred from the docker image env
+ELASSANDRA_VERSION=${ELASSANDRA_VERSION:-$(get_image_env ELASSANDRA_VERSION)}
+if [ -z $ELASSANDRA_VERSION ]; then
+  echo "can't infer the elassandra version, missing env ELASSANDRA_VERSION" >&2
   exit 1
 fi
 
-# optionally, the sha1 of the commit, if applicable
-# this will be used to tag the image
-ENTERPRISE_PLUGIN_COMMIT=${ENTERPRISE_PLUGIN_COMMIT:-""}
+# The script need the strapack git repository where the zip package has been built
+PLUGIN_DIR=${PLUGIN_DIR}
+PLUGIN_LOCATION=${PLUGIN_LOCATION}
+if [ -z "$PLUGIN_DIR" ] && [ -z "$PLUGIN_LOCATION" ]; then
+  echo "PLUGIN_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
+  echo "or PLUGIN_LOCATION must point to an url or path containing the enterprise plugin."
+  exit 1
+fi
+
+# optionally, the sha1 of the strapack commit, if applicable
+# this will be used to tag the image.
+# If PLUGIN_DIR is set, it will be inferred from the git repository
+PLUGIN_COMMIT=${PLUGIN_COMMIT:-""}
+
+# optionally, the sha1 of the elassandra commit, if applicable
+# this will be used to tag the image.
+# it is inferred from the base image if not set.
+ELASSANDRA_COMMIT=${ELASSANDRA_COMMIT:-$(get_image_env ELASSANDRA_COMMIT)}
 
 #---- output params ----
 # If set, the images will be published to docker hub
@@ -57,7 +89,6 @@ DOCKER_IMAGE=${DOCKER_REGISTRY}${REPO_NAME}
 # Options to add to docker build command
 DOCKER_BUILD_OPTS=${DOCKER_BUILD_OPTS:-"--rm"}
 
-
 wget_package() {
   local url=$1
   mkdir -p tmp-cache
@@ -67,14 +98,27 @@ wget_package() {
   PACKAGE_SRC=tmp-cache/$(basename $url)
 }
 
+get_current_commit() {
+  local repo=$1
+  git rev-parse HEAD --git-path $repo | head -n1
+}
 
-if [ -n "$ENTERPRISE_PLUGIN_DIR" ]; then
+if [ -n "$PLUGIN_DIR" ]; then
   # get the first zip package in the distribution folder of the git repository
-  PACKAGE_SRC=$(ls ${ENTERPRISE_PLUGIN_DIR}/distribution/target/releases/strapdata-enterprise-*.zip | head -n1 | cut -d " " -f1)
+  PACKAGE_SRC=$(ls ${PLUGIN_DIR}/distribution/target/releases/strapdata-enterprise-*.zip | head -n1 | cut -d " " -f1)
 
-elif [ -n "$ENTERPRISE_PLUGIN_URL" ] && [[ $ENTERPRISE_PLUGIN_URL = http* ]]; then
+  # if plugin commit is not set, get the commit hash from the repository
+  if [ -z "$PLUGIN_COMMIT" ]; then
+    PLUGIN_COMMIT="$(get_current_commit $PLUGIN_DIR)"
+  fi
+
+elif [ -n "$PLUGIN_LOCATION" ] && [[ $PLUGIN_LOCATION = http* ]]; then
   # download the file from the web
-  wget_package $ENTERPRISE_PLUGIN_URL
+  wget_plugin $PLUGIN_LOCATION
+
+elif [ -n "$PLUGIN_LOCATION" ]; then
+  # simply get the file from the local disk
+  PLUGIN_SRC="$PLUGIN_LOCATION"
 
 else
   echo "error: unreachable... you may report the issue"
@@ -82,7 +126,7 @@ else
 fi
 
 # extract the elassandra version name
-ENTERPRISE_PLUGIN_VERSION=$(echo ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip/\1/')
+PLUGIN_VERSION=$(echo ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip/\1/')
 ELASSANDRA_TAG=$(echo ${BASE_IMAGE} | sed 's/.*:\(.*\)/\1/')
 
 # setup the tmp-build directory
@@ -90,10 +134,10 @@ mkdir -p tmp-build
 cp ${PACKAGE_SRC} tmp-build/
 
 # build the image
-echo "Building elassandra-enterprise docker image for $BASE_IMAGE with strapack $ENTERPRISE_PLUGIN_VERSION"
-docker build --build-arg ENTERPRISE_PLUGIN_VERSION=${ENTERPRISE_PLUGIN_VERSION} \
+echo "Building elassandra-enterprise docker image for $BASE_IMAGE with strapack $PLUGIN_VERSION"
+docker build --build-arg ENTERPRISE_PLUGIN_VERSION=${PLUGIN_VERSION} \
              --build-arg BASE_IMAGE=${BASE_IMAGE} \
-             ${ENTERPRISE_PLUGIN_COMMIT:+"--build-arg ENTERPRISE_PLUGIN_COMMIT=${ENTERPRISE_PLUGIN_COMMIT}"} \
+             ${PLUGIN_COMMIT:+--build-arg ENTERPRISE_PLUGIN_COMMIT=${PLUGIN_COMMIT}} \
              ${DOCKER_BUILD_OPTS} -f Dockerfile -t "$DOCKER_IMAGE:$ELASSANDRA_TAG" .
 
 # cleanup
@@ -114,7 +158,13 @@ if [ "$DOCKER_LATEST" = "true" ]; then
   publish ${DOCKER_IMAGE}:latest
 fi
 
-if [ ! -z "$ELASSANDRA_COMMIT" ]; then
-  docker tag ${DOCKER_IMAGE}:${ELASSANDRA_TAG} ${DOCKER_IMAGE}:${ELASSANDRA_COMMIT}
-  publish ${DOCKER_IMAGE}:${ELASSANDRA_COMMIT}
+if [ ! -z "$ELASSANDRA_COMMIT" ] || [ ! -z "$PLUGIN_COMMIT" ]; then
+
+  # concat the two commit hash (elassandra + strapack)
+  commit_hash=$(echo ${ELASSANDRA_COMMIT:+E_$ELASSANDRA_COMMIT} | cut -c1-9)
+  [ ! -z "$ELASSANDRA_COMMIT" ] && [ ! -z "$PLUGIN_COMMIT" ] && commit_hash="${commit_hash}-"
+  commit_hash=${commit_hash}$(echo ${PLUGIN_COMMIT:+S_$PLUGIN_COMMIT} | cut -c1-9)
+
+  docker tag ${DOCKER_IMAGE}:${ELASSANDRA_TAG} ${DOCKER_IMAGE}:${commit_hash}
+  publish ${DOCKER_IMAGE}:${commit_hash}
 fi
