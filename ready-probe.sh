@@ -4,8 +4,24 @@
 #
 # MONITOR_SSL_CLIENT_CERT could be your client-auth certificate and keystore (filename of a mounted k8s secret)
 # MONITOR_SSL_CLIENT_CERT_TYPE should be your client-auth certificate file type, p12 by default
-#set -x
-POD_IP=${POD_IP:-$(hostname --ip-address)}
+#
+if [[ $DEBUG ]]; then
+  set -x
+fi
+
+_ip_address() {
+	# scrape the first non-localhost IP address of the container
+	# in Swarm Mode, we often get two IPs -- the container IP, and the (shared) VIP, and the container IP should always be first
+	ip address | awk '
+		$1 == "inet" && $NF != "lo" {
+			gsub(/\/.+$/, "", $2)
+			print $2
+			exit
+		}
+	'
+}
+
+POD_IP=${POD_IP:-$(_ip_address)}
 
 if [[ $(nodetool status | grep ${POD_IP}) == *"UN"* ]]; then
   if [[ "${CASSANDRA_DAEMON:-org.apache.cassandra.service.CassandraDaemon}" == "org.apache.cassandra.service.CassandraDaemon" ]]; then
