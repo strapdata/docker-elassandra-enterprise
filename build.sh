@@ -40,6 +40,10 @@ DOCKER_PUBLISH=${DOCKER_PUBLISH:-false}
 
 # Unless specified with a trailing slash, publish in the public strapdata docker hub
 DOCKER_REGISTRY=${DOCKER_REGISTRY:-""}
+# auto add slash to the end of registry if needed
+if [ ! -z "${DOCKER_REGISTRY}" ] && [ "${DOCKER_REGISTRY: -1}" != "/" ]; then
+  DOCKER_REGISTRY=${DOCKER_REGISTRY}/
+fi
 
 # If set, the images will be tagged latest
 DOCKER_LATEST=${DOCKER_LATEST:-false}
@@ -65,7 +69,7 @@ wget_package() {
 
 
 if [ -n "$ENTERPRISE_PLUGIN_DIR" ]; then
-  # get the first elassandra deb in the distributions folder of the git repository
+  # get the first zip package in the distribution folder of the git repository
   PACKAGE_SRC=$(ls ${ENTERPRISE_PLUGIN_DIR}/distribution/target/releases/strapdata-enterprise-*.zip | head -n1 | cut -d " " -f1)
 
 elif [ -n "$ENTERPRISE_PLUGIN_URL" ] && [[ $ENTERPRISE_PLUGIN_URL = http* ]]; then
