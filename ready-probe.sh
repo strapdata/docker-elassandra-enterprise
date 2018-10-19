@@ -27,7 +27,12 @@ if [[ $(nodetool status | grep ${POD_IP}) == *"UN"* ]]; then
   if [[ "${CASSANDRA_DAEMON:-org.apache.cassandra.service.CassandraDaemon}" == "org.apache.cassandra.service.CassandraDaemon" ]]; then
      exit 0;
   else 
-     rc=$(curl -sLI -k -w '%{http_code}\n' ${MONITOR_SSL_CLIENT_CERT:+"--cert"} ${MONITOR_SSL_CLIENT_CERT} ${MONITOR_SSL_CLIENT_CERT:+"--cert-type"} ${MONITOR_SSL_CLIENT_CERT:+"${MONITOR_SSL_CLIENT_CERT_TYPE:-p12}"} -o /dev/null --max-time ${READINESS_PROBE_TIMEOUT:-30} "${PROTOCOL:-http}://${POD_IP}:9200/")
+     rc=$(curl -sLI -k -w '%{http_code}\n' \
+          ${MONITOR_SSL_CLIENT_CERT:+"--cert"} ${MONITOR_SSL_CLIENT_CERT} \
+          ${MONITOR_SSL_CLIENT_CERT:+"--cert-type"} ${MONITOR_SSL_CLIENT_CERT:+"${MONITOR_SSL_CLIENT_CERT_TYPE:-p12}"} \
+          -o /dev/null --max-time ${READINESS_PROBE_TIMEOUT:-30} \
+          "${PROTOCOL:-http}://${POD_IP}:9200/")
+
      if [[ $DEBUG ]]; then
         echo "Elasticsearch check rc=${rc}";
      fi
