@@ -29,6 +29,9 @@ COPY --chown=cassandra:cassandra elasticsearch.yml $CASSANDRA_CONF/elasticsearch
 # Overwrite the ready-probe.sh for secured elasticsearch
 COPY ready-probe.sh /
 
+# Overwrite the log configuration to include audit appender.
+COPY logback.xml /etc/cassandra/
+
 # Add the strapdata enterprise plugin
 COPY --chown=cassandra:cassandra tmp-build/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip /tmp/
 RUN cd /usr/share/cassandra \
