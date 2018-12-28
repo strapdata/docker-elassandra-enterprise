@@ -25,9 +25,7 @@ COPY --chown=cassandra:cassandra truststore.jks $CASSANDRA_CONF/server-truststor
 COPY --chown=cassandra:cassandra keystore.jks $CASSANDRA_CONF/client-keystore.jks
 COPY --chown=cassandra:cassandra truststore.jks $CASSANDRA_CONF/client-truststore.jks
 COPY --chown=cassandra:cassandra elasticsearch.yml $CASSANDRA_CONF/elasticsearch.yml
-
-# Overwrite the ready-probe.sh for secured elasticsearch
-COPY ready-probe.sh /
+COPY --chown=cassandra:cassandra cqlshrc /home/cassandra/.cassandra/cqlshrc
 
 # Overwrite the log configuration to include audit appender.
 COPY logback.xml /etc/cassandra/
@@ -56,10 +54,10 @@ RUN echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.custom_query_handler_class=org.elassan
   && mv $CASSANDRA_CONF/cassandra-ssl.yaml $CASSANDRA_CONF/cassandra.yaml \
 # workaround for cassandra docker-entrypoint.sh
   && echo "# broadcast_rpc_address: 1.2.3.4" >> $CASSANDRA_CONF/cassandra.yaml \
-  && { echo "cacert = $CASSANDRA_CONF/cacert.pem"; } > /root/.curlrc \
-  && mkdir -p /root/.cassandra && { \
-        echo "[connection]"; \
-        echo "factory = cqlshlib.ssl.ssl_transport_factory"; \
-        echo "[ssl]"; \
-        echo "certfile = $CASSANDRA_CONF/cacert.pem"; \
-        echo "validate = true"; } > /root/.cassandra/cqlshrc
+  && { echo "cacert = $CASSANDRA_CONF/cacert.pem"; } > /root/.curlrc
+  
+  
+COPY docker-entrypoint-enterprise.sh /usr/local/bin/
+RUN ln -s usr/local/bin/docker-entrypoint-enterprise.sh /docker-entrypoint-enterprise.sh # backwards compat
+ENTRYPOINT ["docker-entrypoint-enterprise.sh"]
+  
