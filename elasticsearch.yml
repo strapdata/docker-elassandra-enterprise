@@ -3,6 +3,9 @@
 #
 transport.bind_host: 0.0.0.0
 
+# Enable elasticsearch JMX
+jmx.enabled: true
+
 # SSL network encryption
 ssl.transport.enabled: true
 https.enabled: true
