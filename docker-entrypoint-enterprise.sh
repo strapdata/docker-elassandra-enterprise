@@ -23,14 +23,14 @@ fi
 if [ "$1" = 'cassandra' ]; then
   export JVM_OPTS
 
-  # Add nabto prometheus-cassandra exporter
-if [ -n "${CASSANDRA_DROPWIZARD_PROMETHEUS_EXPORTER_PORT}" ]; then
+  # Add dropwizard prometheus-cassandra exporter
+  if [ -n "${CASSANDRA_DROPWIZARD_PROMETHEUS_EXPORTER_PORT}" ]; then
      JVM_OPTS="$JVM_OPTS -javaagent:/usr/share/cassandra/agents/cassandra-prometheus-2.0.0.2-jar-with-dependencies.jar=${CASSANDRA_DROPWIZARD_PROMETHEUS_EXPORTER_PORT}"
   fi
   
   # Add JMX prometheus exporter
   if [ -n "${CASSANDRA_JMX_PROMETHEUS_EXPORTER_PORT}" ]; then
-     JVM_OPTS="$JVM_OPTS -javaagent:/usr/share/cassandra/agents/jmx_prometheus_javaagent-0.10.jar=${CASSANDRA_JMX_PROMETHEUS_EXPORTER_PORT}:${CASSANDRA_CONF}/jmx_prometheus_exporter.yml"
+     JVM_OPTS="$JVM_OPTS -javaagent:/usr/share/cassandra/agents/jmx_prometheus_javaagent-0.3.1.jar=${CASSANDRA_JMX_PROMETHEUS_EXPORTER_PORT}:${CASSANDRA_JMX_PROMETHEUS_EXPORTER_CONF:-/etc/cassandra/jmx_prometheus_exporter.yml}"
   fi
 
   echo "JVM_OPTS=$JVM_OPTS"
