@@ -54,7 +54,11 @@ RUN echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.custom_query_handler_class=org.elassan
   && mv $CASSANDRA_CONF/cassandra-ssl.yaml $CASSANDRA_CONF/cassandra.yaml \
 # workaround for cassandra docker-entrypoint.sh
   && echo "# broadcast_rpc_address: 1.2.3.4" >> $CASSANDRA_CONF/cassandra.yaml \
-  && { echo "cacert = $CASSANDRA_CONF/cacert.pem"; } > /root/.curlrc
+  && { echo "cacert = $CASSANDRA_CONF/cacert.pem"; } > /root/.curlrc \
+  && mkdir /root/.cassandra
+
+# copy .cqlshrc pointing to /etc/cassandra/cacert.pem
+COPY cqlshrc /root/.cassandra/cqlshrc
   
   
 COPY docker-entrypoint-enterprise.sh /usr/local/bin/
