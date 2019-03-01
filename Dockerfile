@@ -39,7 +39,7 @@ RUN cd /usr/share/cassandra \
   && rm -v /tmp/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip
 
 # Enable SSL encryption and authentication
-RUN echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.custom_query_handler_class=org.elassandra.index.ElasticQueryHandler"' >> $CASSANDRA_CONF/cassandra-env.sh \
+RUN echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.custom_query_handler_class=org.elassandra.index.EnterpriseElasticQueryHandler"' >> $CASSANDRA_CONF/cassandra-env.sh \
   && yq --yaml-output  '.server_encryption_options.internode_encryption="none"' $CASSANDRA_CONF/cassandra.yaml | \
      yq --yaml-output  '.server_encryption_options.protocol="TLSv1.2"' | \
      yq --yaml-output  ".server_encryption_options.keystore=\"$CASSANDRA_CONF/server-keystore.jks\"" | \
