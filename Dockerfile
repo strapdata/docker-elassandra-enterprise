@@ -59,8 +59,7 @@ RUN echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.custom_query_handler_class=org.elassan
 
 # copy .cqlshrc pointing to /etc/cassandra/cacert.pem
 COPY cqlshrc /root/.cassandra/cqlshrc
-  
-  
+
 COPY docker-entrypoint-enterprise.sh /usr/local/bin/
 RUN ln -s usr/local/bin/docker-entrypoint-enterprise.sh /docker-entrypoint-enterprise.sh # backwards compat
 ENTRYPOINT ["docker-entrypoint-enterprise.sh"]
