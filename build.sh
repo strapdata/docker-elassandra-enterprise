@@ -19,7 +19,20 @@ set -ex
 
 #---- input params ----
 # the base image to inherit from
-BASE_IMAGE=${BASE_IMAGE:-strapdata/elassandra:latest}
+BASE_IMAGE_NAME=${BASE_IMAGE:-strapdata/elassandra}
+
+BASE_IMAGE_TAG=${BASE_IMAGE_TAG}
+if [ "$BASE_IMAGE_TAG" = "latest" ] || [ "$BASE_IMAGE_TAG" = "" ]; then
+  echo "error: the BASE_IMAGE_TAG must be other than latest"
+  exit 1
+fi
+
+if [ "$BASE_IMAGE" != "" ]; then
+  echo "error: BASE_IMAGE is deprecated, you must use BASE_IMAGE_NAME and BASE_IMAGE_TAG instead"
+  exit 1;
+fi
+
+BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG
 
 # if true, remove the image to re-download it.
 FORCE_PULL=${FORCE_PULL:-false}
@@ -51,13 +64,12 @@ fi
 PLUGIN_DIR=${PLUGIN_DIR}
 PLUGIN_LOCATION=${PLUGIN_LOCATION}
 if [ -z "$PLUGIN_DIR" ] && [ -z "$PLUGIN_LOCATION" ]; then
-  echo "PLUGIN_DIR must be set to the elassandra repository directory (with debian package assembled inside)"
+  echo "PLUGIN_DIR must be set to the strapack repository directory (with zip package assembled inside)"
   echo "or PLUGIN_LOCATION must point to an url or path containing the enterprise plugin."
   exit 1
 fi
 
-# optionally, the sha1 of the strapack commit, if applicable
-# this will be used to tag the image.
+# optionally, the sha1 of the strapack commit.
 # If PLUGIN_DIR is set, it will be inferred from the git repository
 PLUGIN_COMMIT=${PLUGIN_COMMIT:-""}
 
@@ -138,7 +150,7 @@ echo "Building elassandra-enterprise docker image for $BASE_IMAGE with strapack 
 docker build --build-arg ENTERPRISE_PLUGIN_VERSION=${PLUGIN_VERSION} \
              --build-arg BASE_IMAGE=${BASE_IMAGE} \
              ${PLUGIN_COMMIT:+--build-arg ENTERPRISE_PLUGIN_COMMIT=${PLUGIN_COMMIT}} \
-             ${DOCKER_BUILD_OPTS} -f Dockerfile -t "$DOCKER_IMAGE:$ELASSANDRA_TAG" .
+             ${DOCKER_BUILD_OPTS} -f Dockerfile -t "$DOCKER_IMAGE:$BASE_IMAGE_TAG" .
 
 # cleanup
 rm -rf tmp-build
