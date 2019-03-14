@@ -129,7 +129,7 @@ init() {
   fi
 
   # the strapack elassandra version.
-  PLUGIN_VERSION=$(basename ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip/\1/')
+  PLUGIN_VERSION=$(basename ${PACKAGE_SRC} | sed 's/.*\-\(.*\).zip$/\1/')
   # the elassandra version.
   # if not set, it is inferred from the docker image env
   ELASSANDRA_VERSION=${ELASSANDRA_VERSION:-$(get_image_env ELASSANDRA_VERSION)}
