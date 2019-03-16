@@ -9,4 +9,6 @@ imageTests+=(
 	[elassandra-enterprise]=$elassandra_tests
 
 	[elassandra-enterprise-rc]=$elassandra_tests
+
+  [elassandra-enterprise-snapshots]=$elassandra_tests
 )
