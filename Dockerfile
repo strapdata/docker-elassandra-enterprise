@@ -32,8 +32,7 @@ COPY logback.xml /etc/cassandra/
 
 # Add the strapdata enterprise plugin
 COPY --chown=cassandra:cassandra tmp-build/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip /tmp/
-RUN cd /usr/share/cassandra \
-  && unzip -o /tmp/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip \
+RUN unzip -o /tmp/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip -d /usr/share/cassandra \
   && cd /usr/share/cassandra/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION} \
   && ./install.sh \
   && rm -v /tmp/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip
