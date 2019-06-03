@@ -37,25 +37,23 @@ RUN unzip -o /tmp/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip -d /usr/
   && ./install.sh \
   && rm -v /tmp/strapdata-enterprise-${ENTERPRISE_PLUGIN_VERSION}.zip
 
-# Enable SSL encryption and authentication
+# Enable cassandra security features
+ENV CASSANDRA__server_encryption_options__internode_encryption none
+ENV CASSANDRA__server_encryption_options__protocol TLSv1.2
+ENV CASSANDRA__server_encryption_options__keystore /etc/cassandra/server-keystore.jks
+ENV CASSANDRA__server_encryption_options__truststore /etc/cassandra/server-truststore.jks
+ENV CASSANDRA__client_encryption_options__enabled true
+ENV CASSANDRA__client_encryption_options__optional true
+ENV CASSANDRA__client_encryption_options__protocol TLSv1.2
+ENV CASSANDRA__client_encryption_options__keystore /etc/cassandra/client-keystore.jks
+ENV CASSANDRA__client_encryption_options__truststore /etc/cassandra/client-truststore.jks
+ENV CASSANDRA__authenticator PasswordAuthenticator
+ENV CASSANDRA__authorizer CassandraAuthorizer
+
 RUN echo 'JVM_OPTS="$JVM_OPTS -Dcassandra.custom_query_handler_class=org.elassandra.index.EnterpriseElasticQueryHandler"' >> $CASSANDRA_CONF/cassandra-env.sh \
-  && yq --yaml-output  '.server_encryption_options.internode_encryption="none"' $CASSANDRA_CONF/cassandra.yaml | \
-     yq --yaml-output  '.server_encryption_options.protocol="TLSv1.2"' | \
-     yq --yaml-output  ".server_encryption_options.keystore=\"$CASSANDRA_CONF/server-keystore.jks\"" | \
-     yq --yaml-output  ".server_encryption_options.truststore=\"$CASSANDRA_CONF/server-truststore.jks\"" | \
-     yq --yaml-output  '.client_encryption_options.enabled=true' | \
-     yq --yaml-output  '.client_encryption_options.optional=true' | \
-     yq --yaml-output  '.client_encryption_options.protocol="TLSv1.2"' | \
-     yq --yaml-output  ".client_encryption_options.keystore=\"$CASSANDRA_CONF/client-keystore.jks\"" | \
-     yq --yaml-output  ".client_encryption_options.truststore=\"$CASSANDRA_CONF/client-truststore.jks\"" | \
-     yq --yaml-output  '.authenticator="PasswordAuthenticator"'  | \
-     yq --yaml-output  '.authorizer="CassandraAuthorizer"' > $CASSANDRA_CONF/cassandra-ssl.yaml \
-  && mv $CASSANDRA_CONF/cassandra-ssl.yaml $CASSANDRA_CONF/cassandra.yaml \
-# workaround for cassandra docker-entrypoint.sh
-  && echo "# broadcast_rpc_address: 1.2.3.4" >> $CASSANDRA_CONF/cassandra.yaml \
   && { echo "cacert = $CASSANDRA_CONF/cacert.pem"; } > /root/.curlrc \
   && mkdir /root/.cassandra
-
+ 
 # copy .cqlshrc pointing to /etc/cassandra/cacert.pem
 COPY cqlshrc /root/.cassandra/cqlshrc
 
