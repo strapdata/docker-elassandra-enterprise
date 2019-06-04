@@ -63,6 +63,7 @@ test_config_yq() {
     fi
   }
 
+  sleep 10
   verify /etc/cassandra/cassandra.yaml num_tokens 5
   verify /etc/cassandra/cassandra.yaml hinted_handoff_enabled false
   verify /etc/cassandra/cassandra.yaml authenticator PasswordAuthenticator
