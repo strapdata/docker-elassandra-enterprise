@@ -16,7 +16,8 @@ ENV PROTOCOL https
 # Install JCE
 RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/* && \
     curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/unlimited_jce_policy.zip "http://download.oracle.com/otn-pub/java/jce/8/jce_policy-8.zip" && \
-    unzip -jo -d /etc/java-8-openjdk/security /tmp/unlimited_jce_policy.zip 
+    unzip -jo -d /etc/java-8-openjdk/security /tmp/unlimited_jce_policy.zip && \
+    rm -v /tmp/unlimited_jce_policy.zip
 
 # Add keystores and elasticsearch.yml
 COPY --chown=cassandra:cassandra cacert.pem $CASSANDRA_CONF/cacert.pem
