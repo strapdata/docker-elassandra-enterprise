@@ -57,13 +57,6 @@ init() {
     DOCKER_REGISTRY=${DOCKER_REGISTRY}/
   fi
 
-  # If set, the images will be tagged latest
-  DOCKER_LATEST=${DOCKER_LATEST:-false}
-
-  # If set, the image is considered to be the latest relative to the major elasticsearch version (5 or 6).
-  # Consequently, the image will be tagged with generic versions (for instance 6.2.3.4 will produce 6, 6.2 and 6.2.3)
-  DOCKER_MAJOR_LATEST=${DOCKER_MAJOR_LATEST:-false}
-
   # set the docker hub repository name
   REPO_NAME=${REPO_NAME:-"strapdata/elassandra-enterprise"}
 
@@ -80,6 +73,13 @@ init() {
     exit 1;
   fi
   BASE_IMAGE=$BASE_IMAGE_NAME:$BASE_IMAGE_TAG
+
+  # If set, the images will be tagged latest
+  DOCKER_LATEST=${DOCKER_LATEST:-$(is_latest_image $BASE_IMAGE_NAME $BASE_IMAGE_TAG)}
+
+  # If set, the image is considered to be the latest relative to the major elasticsearch version (5 or 6).
+  # Consequently, the image will be tagged with generic versions (for instance 6.2.3.4 will produce 6, 6.2 and 6.2.3)
+  DOCKER_MAJOR_LATEST=${DOCKER_MAJOR_LATEST:-$(is_latest_image $BASE_IMAGE_NAME $BASE_IMAGE_TAG)}
 
   # if true, remove the image to re-download it.
   FORCE_PULL=${FORCE_PULL:-false}
@@ -235,6 +235,8 @@ tag_and_push() {
   push ${DOCKER_IMAGE}:${tag}
 }
 
+# $1 = env variabale name
+# $2 = optional image name
 get_image_env() {
   local name=$1
   local image=${2:-${BASE_IMAGE}}
@@ -242,6 +244,21 @@ get_image_env() {
     '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' \
     $image | grep $name)
   echo ${val#"$name="}
+}
+
+# $1 = image name
+# $2 = image tag
+is_latest_image() {
+    if [ "$2" = "latest" ]; then
+        return "true"
+    fi
+    
+    local latest_elassandra_version=$(get_image_env ELASSANDRA_VERSION "$1:latest")
+    if [ "$latest_elassandra_version" = "$2" ]; then
+        echo "true"
+    else
+        echo "false"
+    fi
 }
 
 main $@
