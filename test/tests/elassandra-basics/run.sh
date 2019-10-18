@@ -12,19 +12,22 @@ image="$1"
 clientImage="$image"
 
 # check elassandra version and commit
-if [ ! -z "$ELASSANDRA_VERSION" ]; then
-  [ "$(docker inspect -f  \
-    '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' \
-    $image | grep ELASSANDRA_VERSION)" = "ELASSANDRA_VERSION=$ELASSANDRA_VERSION" ]
+if [ -z "$ELASSANDRA_VERSION" ]; then
+	echo "warning: skipping elassandra version check, please set ELASSANDRA_VERSION"
 else
-  echo "warning: skipping elassandra version check, please set ELASSANDRA_VERSION"
+   # check the existsing image has the same version number
+   [ "$(docker inspect -f  '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' \
+      $image | grep ELASSANDRA_VERSION)" != "ELASSANDRA_VERSION=$ELASSANDRA_VERSION" ]
 fi
-if [ ! -z "$ELASSANDRA_COMMIT" ]; then
-  [ "$(docker inspect -f  \
-    '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' \
-    $image | grep ELASSANDRA_COMMIT)" = "ELASSANDRA_COMMIT=$ELASSANDRA_COMMIT" ]
+
+if [ -z "$ELASSANDRA_COMMIT" ]; then
+    echo "warning: skipping elassandra commit check, please set ELASSANDRA_COMMIT"
 else
-  echo "warning: skipping elassandra commit check, please set ELASSANDRA_VERSION"
+   # check the existsing image commit
+   if [ "$(docker inspect -f  '{{range $index, $value := .Config.Env}}{{println $value}}{{end}}' \
+      $image | grep ELASSANDRA_COMMIT)" != "ELASSANDRA_COMMIT=$ELASSANDRA_COMMIT" ]; then
+      echo "WARNING: Overwriting an existsing image"
+   fi
 fi
 
 
