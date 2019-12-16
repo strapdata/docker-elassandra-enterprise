@@ -132,7 +132,7 @@ init() {
   PLUGIN_VERSION=${PLUGIN_VERSION:-$(basename ${PACKAGE_SRC} | sed 's/.*strapdata-enterprise\-\(.*\).zip$/\1/')}
   # the elassandra version.
   # if not set, it is inferred from the docker image env
-  ELASSANDRA_VERSION=${ELASSANDRA_VERSION:-$(get_image_env ELASSANDRA_VERSION)}
+  ELASSANDRA_VERSION=${ELASSANDRA_VERSION:-$PLUGIN_VERSION}
   if [ -z $ELASSANDRA_VERSION ]; then
     echo "can't infer the elassandra version, missing env ELASSANDRA_VERSION" >&2
     exit 1
