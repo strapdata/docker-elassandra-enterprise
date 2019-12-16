@@ -250,7 +250,7 @@ get_image_env() {
 # $2 = image tag
 is_latest_image() {
     if [ "$2" = "latest" ]; then
-        return "true"
+        echo "true"
     fi
     
     local latest_elassandra_version=$(get_image_env ELASSANDRA_VERSION "$1:latest")
