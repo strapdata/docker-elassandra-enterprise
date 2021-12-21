@@ -14,8 +14,8 @@ ENV ENTERPRISE_PLUGIN_COMMIT ${ENTERPRISE_PLUGIN_COMMIT}
 ENV PROTOCOL https
 
 # Install JCE
+COPY jce_policy-8.zip /tmp/unlimited_jce_policy.zip
 RUN apt-get update && apt-get install -y --no-install-recommends unzip && rm -rf /var/lib/apt/lists/* && \
-    curl -jksSLH "Cookie: oraclelicense=accept-securebackup-cookie" -o /tmp/unlimited_jce_policy.zip "http://download.oracle.com/otn-pub/java/jce/8/jce_policy-8.zip" && \
     unzip -jo -d /etc/java-8-openjdk/security /tmp/unlimited_jce_policy.zip && \
     rm -v /tmp/unlimited_jce_policy.zip
 
